@@ -1,1 +1,119 @@
+import numpy as np
+import pandas as pd
 
+data=pd.read_csv('water_potability.csv')
+
+#print(data)
+Y=data['Potability']
+X=data
+X_early=data
+#print(X)
+X.drop(columns=['Potability'],inplace=True)
+#Y=data['Potability']
+
+
+
+from sklearn.feature_selection import mutual_info_classif
+from sklearn.feature_selection import mutual_info_regression
+
+
+Copy_temp=X['ph'].dropna()
+X['ph']=X['ph'].fillna(Copy_temp.values.mean())
+Copy_temp=X['Sulfate'].dropna()
+X['Sulfate']=X['Sulfate'].fillna(Copy_temp.values.mean())
+Copy_temp=X['Trihalomethanes'].dropna()
+X['Trihalomethanes']=X['Trihalomethanes'].fillna(Copy_temp.values.mean())
+
+
+print(mutual_info_regression(X,Y,random_state=420))
+def make_mi_scores(x, y):
+    #x.reshape(-1,1)
+    x=x.values.reshape(-1,1)
+    mi_scores=mutual_info_regression(x,y)
+    return mi_scores
+
+cols=X.columns
+
+#print(cols[0])
+
+#print(X)
+'''
+scores=[]
+print(make_mi_scores(X['ph'],Y))
+scores.append(make_mi_scores(X['ph'],Y))
+print(make_mi_scores(X['Hardness'],Y))
+scores.append(make_mi_scores(X['Hardness'],Y))
+print(make_mi_scores(X['Solids'],Y))
+scores.append(make_mi_scores(X['Solids'],Y))
+print(make_mi_scores(X['Chloramines'],Y)) #0
+scores.append(make_mi_scores(X['Chloramines'],Y))
+print(make_mi_scores(X['Sulfate'],Y))#0
+scores.append(make_mi_scores(X['Sulfate'],Y))
+print(make_mi_scores(X['Conductivity'],Y))
+scores.append(make_mi_scores(X['Conductivity'],Y))
+print(make_mi_scores(X['Organic_carbon'],Y))
+scores.append(make_mi_scores(X['Organic_carbon'],Y))
+print(make_mi_scores(X['Trihalomethanes'],Y)) #0
+scores.append(make_mi_scores(X['Trihalomethanes'],Y))
+print(make_mi_scores(X['Turbidity'],Y))
+scores.append(make_mi_scores(X['Turbidity'],Y))'''
+
+#ph 0.08 | hardness 0.26 | solids 0.001 | chloramines,sulfate 0 | conductivity 0.007 | organic_poop 0.004 | trihalo 0 | turbina 0.03
+
+from sklearn.model_selection import train_test_split
+#print(X_early)
+#print(Y)
+
+X_early.drop(columns=['Chloramines','Sulfate','Trihalomethanes'],inplace=True)
+print(X_early.isna().sum())
+X_train, X_test, y_train, y_test = train_test_split(X_early, Y.values, test_size=0.33, random_state=420)
+
+from sklearn.linear_model import LogisticRegression
+import catboost
+from catboost import CatBoostClassifier
+
+lr=CatBoostClassifier()
+lr.fit(X_train,y_train)
+
+import pickle
+with open('model.pkl','wb') as f:
+    pickle.dump(lr,f)
+
+import matplotlib.pyplot as plt
+from sklearn.metrics import roc_curve
+from sklearn.metrics import roc_auc_score
+import sklearn
+
+print(lr.predict_proba(X_test))
+
+fpr, tpr, _ = sklearn.metrics.roc_curve(y_test, lr.predict_proba(X_test)[:,1])
+roc_auc = sklearn.metrics.roc_auc_score(y_test, lr.predict_proba(X_test)[:,1])
+plt.figure()
+lw = 2
+plt.plot(fpr, tpr,color='darkorange', lw=lw, label='ROC curve (area = %0.2f)' % roc_auc)
+plt.plot([0, 1], [0, 1], color='navy', lw=lw, linestyle='--')
+plt.xlim([0.0, 1.0])
+plt.ylim([0.0, 1.05])
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('Receiver operating characteristic example')
+plt.legend(loc="lower right")
+plt.show()
+
+
+# In[28]:
+
+
+fpr, tpr, _ = sklearn.metrics.roc_curve(y_train, lr.predict_proba(X_train)[:,1])
+roc_auc = sklearn.metrics.roc_auc_score(y_train, lr.predict_proba(X_train)[:,1])
+plt.figure()
+lw = 2
+plt.plot(fpr, tpr,color='darkorange', lw=lw, label='ROC curve (area = %0.2f)' % roc_auc)
+plt.plot([0, 1], [0, 1], color='navy', lw=lw, linestyle='--')
+plt.xlim([0.0, 1.0])
+plt.ylim([0.0, 1.05])
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('Receiver operating characteristic example')
+plt.legend(loc="lower right")
+plt.show()
