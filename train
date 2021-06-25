@@ -64,15 +64,49 @@ from sklearn.model_selection import train_test_split
 #print(X_early)
 #print(Y)
 
-X_early.drop(columns=['Chloramines','Sulfate','Trihalomethanes'],inplace=True)
+#X_early.drop(columns=['Chloramines','Sulfate','Trihalomethanes'],inplace=True)
 print(X_early.isna().sum())
 X_train, X_test, y_train, y_test = train_test_split(X_early, Y.values, test_size=0.33, random_state=420)
 
+#print(X_train,y_train)
+
+import seaborn as sns
+import matplotlib.pyplot as plt
+from scipy import stats
+
+cols=['ph','Hardness','Solids','Conductivity','Organic_carbon','Turbidity']
+'''
+def norm(arr):
+    arr = stats.boxcox(arr)
+    return arr
+
+#print(X_train.columns)
+
+for i in range(6):
+    print(X_train[cols[i]].values)
+    norm(X_train[cols[i]].values)
+'''
+
+plt.figure(figsize=(12, 8))
+sns.heatmap(data.corr(), annot=True)
+
+#X_train['ph']=np.log1p(X_train['ph'])
+X_train['Solids']=X_train['Solids']-X_train['Solids'].mean()
+sns.distplot(X_train['Solids'].values)
+#sns.distplot(normalized_data)
+plt.show()
+
+
+
+
+
+
 from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
 import catboost
 from catboost import CatBoostClassifier
 
-lr=CatBoostClassifier()
+lr=CatBoostClassifier(n_estimators=1000)
 lr.fit(X_train,y_train)
 
 import pickle
@@ -83,37 +117,11 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import roc_curve
 from sklearn.metrics import roc_auc_score
 import sklearn
-
-print(lr.predict_proba(X_test))
-
-fpr, tpr, _ = sklearn.metrics.roc_curve(y_test, lr.predict_proba(X_test)[:,1])
-roc_auc = sklearn.metrics.roc_auc_score(y_test, lr.predict_proba(X_test)[:,1])
-plt.figure()
-lw = 2
-plt.plot(fpr, tpr,color='darkorange', lw=lw, label='ROC curve (area = %0.2f)' % roc_auc)
-plt.plot([0, 1], [0, 1], color='navy', lw=lw, linestyle='--')
-plt.xlim([0.0, 1.0])
-plt.ylim([0.0, 1.05])
-plt.xlabel('False Positive Rate')
-plt.ylabel('True Positive Rate')
-plt.title('Receiver operating characteristic example')
-plt.legend(loc="lower right")
-plt.show()
-
-
-# In[28]:
-
-
-fpr, tpr, _ = sklearn.metrics.roc_curve(y_train, lr.predict_proba(X_train)[:,1])
-roc_auc = sklearn.metrics.roc_auc_score(y_train, lr.predict_proba(X_train)[:,1])
-plt.figure()
-lw = 2
-plt.plot(fpr, tpr,color='darkorange', lw=lw, label='ROC curve (area = %0.2f)' % roc_auc)
-plt.plot([0, 1], [0, 1], color='navy', lw=lw, linestyle='--')
-plt.xlim([0.0, 1.0])
-plt.ylim([0.0, 1.05])
-plt.xlabel('False Positive Rate')
-plt.ylabel('True Positive Rate')
-plt.title('Receiver operating characteristic example')
-plt.legend(loc="lower right")
-plt.show()
+#from sklearn.metrics import accuracy_score
+from sklearn.metrics import *
+prediction=lr.predict(X_test)
+pred_train=lr.predict(X_train)
+print(f'Accuracy_score:{accuracy_score(y_test,prediction)}')
+print(f'Accuracy_score:{accuracy_score(y_train,pred_train)}')
+print(f'f1 score:{f1_score(y_test,prediction)}')
+print(f'f1 score:{f1_score(y_train,pred_train)}')
